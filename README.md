@@ -12,7 +12,8 @@ This project demonstrates how to implement the strangler pattern by building a p
 ✅ **Phase 2 Complete**: Dual-write pattern with new order service, PostgreSQL, and Kafka events  
 ✅ **Phase 3 Complete**: Event-driven architecture with SAP consuming from Kafka  
 ✅ **Dashboard**: Real-time monitoring with WebSocket updates  
-✅ **Data Tools**: Migration and validation CLI tools
+✅ **Data Tools**: Migration and validation CLI tools  
+✅ **Circuit Breaker**: Resilience pattern protecting against service failures
 
 ## Architecture
 
@@ -81,7 +82,8 @@ strangler-demo/
 │   ├── sap/            # SAP client integration
 │   ├── websocket/      # WebSocket hub for real-time updates
 │   ├── migration/      # Data migration utilities
-│   └── comparison/     # Data validation and comparison
+│   ├── comparison/     # Data validation and comparison
+│   └── circuitbreaker/ # Circuit breaker resilience pattern
 ├── pkg/
 │   └── models/         # Shared data models
 ├── scripts/            # Test and demo scripts
@@ -130,6 +132,9 @@ The dashboard provides:
 # Data comparison verification
 ./scripts/compare-data.sh
 
+# Circuit breaker testing
+./scripts/test-circuit-breaker.sh
+
 # Load testing
 ./scripts/load-test.sh
 ```
@@ -170,6 +175,14 @@ The dashboard provides:
 - `order.created` events with full order details
 - Event monitoring via Kafka UI
 - Reliable event consumption with retry logic
+
+### ✅ Circuit Breaker Resilience
+- Protection against cascading failures
+- Fast failure when services are down (no timeouts)
+- Automatic recovery testing and circuit closing
+- Independent circuit breakers for SAP and Order Service
+- Real-time monitoring via `/metrics/circuit-breakers`
+- Configurable thresholds and timeout settings
 
 ### ✅ Data Consistency
 - Real-time consistency verification between systems

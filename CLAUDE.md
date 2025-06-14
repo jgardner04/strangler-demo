@@ -1,8 +1,8 @@
 # CLAUDE.md
 
-## Current Status: Phase 3 Complete ✅
+## Current Status: Phase 3 Complete + Circuit Breaker Resilience ✅
 
-The event-driven architecture is fully implemented with order service, PostgreSQL database, Kafka event streaming, dashboard, WebSocket real-time updates, and comprehensive data migration tools.
+The event-driven architecture is fully implemented with order service, PostgreSQL database, Kafka event streaming, dashboard, WebSocket real-time updates, comprehensive data migration tools, and circuit breaker protection for service resilience.
 
 ## Project Overview
 
@@ -31,10 +31,11 @@ strangler-demo/
 ├── internal/
 │   ├── orders/         # Order domain logic (✅ implemented)
 │   ├── events/         # Event publishing (✅ implemented)
-│   ├── sap/           # SAP integration (✅ implemented)
+│   ├── sap/           # SAP integration with circuit breaker (✅ implemented)
 │   ├── websocket/     # Real-time WebSocket hub (✅ implemented)
 │   ├── migration/     # Data migration tools (✅ implemented)
-│   └── comparison/    # Data validation and comparison (✅ implemented)
+│   ├── comparison/    # Data validation and comparison (✅ implemented)
+│   └── circuitbreaker/ # Circuit breaker resilience pattern (✅ implemented)
 ├── pkg/
 │   └── models/        # Shared data models (✅ implemented)
 ├── docker-compose.yml  # Full stack deployment (✅ implemented)
@@ -241,6 +242,70 @@ Keep these files updated as the project evolves:
 - **API.md**: Endpoint documentation and examples
 - **DOCKER.md**: Infrastructure and deployment guide
 
+## Circuit Breaker Implementation ✅
+
+Added comprehensive circuit breaker protection to prevent cascading failures and provide resilience against service outages.
+
+### Features
+- **Three-state operation**: Closed (normal), Open (failing), Half-Open (testing recovery)
+- **Configurable thresholds**: Max failures, timeout duration, max requests in half-open
+- **Fast failure**: Returns errors immediately when circuit is open (no timeouts)
+- **Automatic recovery**: Tests service health and closes circuit when recovered
+- **Independent protection**: Separate circuit breakers for SAP and Order Service
+- **Real-time monitoring**: Metrics and status endpoints for observability
+
+### Circuit Breaker Configuration
+
+**Environment Variables:**
+```bash
+# SAP Circuit Breaker
+SAP_CB_MAX_FAILURES=3          # failures before opening circuit
+SAP_CB_TIMEOUT_SECONDS=10      # seconds to wait before testing recovery  
+SAP_CB_MAX_REQUESTS=2          # max requests allowed in half-open state
+
+# Order Service Circuit Breaker
+ORDER_SERVICE_CB_MAX_FAILURES=5
+ORDER_SERVICE_CB_TIMEOUT_SECONDS=15
+ORDER_SERVICE_CB_MAX_REQUESTS=3
+```
+
+### Monitoring Endpoints
+
+- **GET** `/metrics/circuit-breakers` - View all circuit breaker states and metrics
+- **POST** `/circuit-breakers/reset` - Reset all circuit breakers
+- **POST** `/circuit-breakers/reset/{name}` - Reset specific circuit breaker (sap, order-service)
+
+### Implementation Details
+
+**Protected Services:**
+- All SAP client calls (`internal/sap/client.go`)
+- All Order Service client calls (`internal/orders/client.go`)
+
+**Circuit Breaker States:**
+1. **Closed**: Normal operation, requests pass through
+2. **Open**: Service failing, return errors immediately
+3. **Half-Open**: Limited requests to test if service recovered
+
+**Benefits:**
+- Prevents cascading failures
+- Fast failure instead of waiting for timeouts
+- Automatic service recovery
+- Resource protection during outages
+- Real-time observability
+
+### Testing Circuit Breakers
+
+Use the provided test script:
+```bash
+./scripts/test-circuit-breaker.sh
+```
+
+This script demonstrates:
+- Normal operation monitoring
+- Circuit breaker metrics collection  
+- Manual testing procedures
+- Recovery verification
+
 ## Demo Script Goals
 
 The final demo should show:
@@ -248,6 +313,7 @@ The final demo should show:
 2. Ecommerce calls proxy → new service + events (fast)
 3. SAP receives events, updates its data
 4. Complete decoupling achieved
+5. Circuit breaker protection during service failures
 
 ## Development Tips
 

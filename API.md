@@ -21,25 +21,26 @@ Creates a new order through the proxy service. In Phase 3, orders are sent to th
 **Endpoint**: `POST /orders`
 
 **Headers**:
+
 - `Content-Type: application/json`
 
 **Request Body**:
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `customer_id` | string | Yes | Unique customer identifier |
-| `items` | array | Yes | List of order items |
-| `total_amount` | number | Yes | Total order amount |
-| `delivery_date` | string | Yes | ISO 8601 formatted delivery date |
+| Field           | Type   | Required | Description                      |
+| --------------- | ------ | -------- | -------------------------------- |
+| `customer_id`   | string | Yes      | Unique customer identifier       |
+| `items`         | array  | Yes      | List of order items              |
+| `total_amount`  | number | Yes      | Total order amount               |
+| `delivery_date` | string | Yes      | ISO 8601 formatted delivery date |
 
 **Order Item Structure**:
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `product_id` | string | Yes | Product identifier |
-| `quantity` | integer | Yes | Quantity ordered |
-| `unit_price` | number | Yes | Price per unit |
-| `specifications` | object | No | Custom product specifications |
+| Field            | Type    | Required | Description                   |
+| ---------------- | ------- | -------- | ----------------------------- |
+| `product_id`     | string  | Yes      | Product identifier            |
+| `quantity`       | integer | Yes      | Quantity ordered              |
+| `unit_price`     | number  | Yes      | Price per unit                |
+| `specifications` | object  | No       | Custom product specifications |
 
 **Example Request**:
 
@@ -113,6 +114,7 @@ Creates a new order through the proxy service. In Phase 3, orders are sent to th
 **Error Responses**:
 
 - **400 Bad Request**: Invalid request body or missing required fields
+
   ```json
   {
     "success": false,
@@ -137,6 +139,7 @@ Compares all orders between the Order Service and SAP Mock to verify data consis
 **Endpoint**: `GET /compare/orders`
 
 **Response** (200 OK):
+
 ```json
 {
   "timestamp": "2025-06-13T15:30:00Z",
@@ -169,6 +172,7 @@ Compares a specific order between both systems.
 **Endpoint**: `GET /compare/orders/{id}`
 
 **Response** (200 OK):
+
 ```json
 {
   "order_id": "550e8400-e29b-41d4-a716-446655440000",
@@ -205,6 +209,7 @@ Checks the health status of the proxy service.
 **Endpoint**: `GET /health`
 
 **Response** (200 OK):
+
 ```json
 {
   "status": "healthy",
@@ -219,6 +224,7 @@ Checks the health status of all services through the proxy.
 **Endpoint**: `GET /api/health/all`
 
 **Response** (200 OK):
+
 ```json
 {
   "proxy": {
@@ -228,14 +234,14 @@ Checks the health status of all services through the proxy.
     "last_check": "2025-06-14T10:30:00Z"
   },
   "order_service": {
-    "status": "healthy", 
+    "status": "healthy",
     "service": "order_service",
     "response_time": 25,
     "last_check": "2025-06-14T10:30:00Z"
   },
   "sap_mock": {
     "status": "healthy",
-    "service": "sap_mock", 
+    "service": "sap_mock",
     "response_time": 150,
     "last_check": "2025-06-14T10:30:00Z"
   }
@@ -249,9 +255,11 @@ Retrieves all orders from the order service through the proxy.
 **Endpoint**: `GET /orders`
 
 **Headers**:
+
 - `Cache-Control: no-cache, no-store, must-revalidate` (response)
 
 **Response** (200 OK):
+
 ```json
 {
   "success": true,
@@ -278,12 +286,109 @@ Checks the health status of the SAP mock service (internal use).
 **Endpoint**: `GET /health`
 
 **Response** (200 OK):
+
 ```json
 {
   "status": "healthy",
   "service": "sap-mock"
 }
 ```
+
+### Circuit Breaker Management
+
+#### Get Circuit Breaker Metrics
+
+Retrieves current state and metrics for all circuit breakers.
+
+**Endpoint**: `GET /metrics/circuit-breakers`
+
+**Response** (200 OK):
+
+```json
+{
+  "circuit_breakers": {
+    "sap": {
+      "name": "sap",
+      "state": "closed",
+      "failures": 0,
+      "requests": 0,
+      "total_requests": 45,
+      "total_failures": 2,
+      "total_successes": 43,
+      "state_changes": 1,
+      "max_failures": 3,
+      "timeout_seconds": 10,
+      "max_requests": 2,
+      "last_failure": "2025-06-14T10:15:30Z",
+      "last_state_change": "2025-06-14T10:16:00Z"
+    },
+    "order-service": {
+      "name": "order-service",
+      "state": "open",
+      "failures": 5,
+      "requests": 0,
+      "total_requests": 12,
+      "total_failures": 8,
+      "total_successes": 4,
+      "state_changes": 2,
+      "max_failures": 5,
+      "timeout_seconds": 15,
+      "max_requests": 3,
+      "last_failure": "2025-06-14T10:20:45Z",
+      "last_state_change": "2025-06-14T10:20:50Z"
+    }
+  },
+  "timestamp": "2025-06-14T10:25:00Z"
+}
+```
+
+**Circuit Breaker States**:
+
+- `closed`: Normal operation, requests pass through
+- `open`: Service failing, requests fail immediately
+- `half-open`: Testing recovery, limited requests allowed
+
+#### Reset All Circuit Breakers
+
+Resets all circuit breakers to the closed state.
+
+**Endpoint**: `POST /circuit-breakers/reset`
+
+**Response** (200 OK):
+
+```json
+{
+  "success": true,
+  "message": "All circuit breakers reset",
+  "timestamp": "2025-06-14T10:25:00Z"
+}
+```
+
+#### Reset Specific Circuit Breaker
+
+Resets a specific circuit breaker to the closed state.
+
+**Endpoint**: `POST /circuit-breakers/reset/{name}`
+
+**Path Parameters**:
+
+- `name`: Circuit breaker name (`sap` or `order-service`)
+
+**Response** (200 OK):
+
+```json
+{
+  "success": true,
+  "message": "Circuit breaker reset",
+  "name": "sap",
+  "timestamp": "2025-06-14T10:25:00Z"
+}
+```
+
+**Error Responses**:
+
+- **400 Bad Request**: Missing circuit breaker name
+- **404 Not Found**: Circuit breaker not found
 
 ### WebSocket Real-Time Updates
 
@@ -298,6 +403,7 @@ Real-time WebSocket connection for receiving live updates about orders, metrics,
 #### Supported Message Types
 
 **1. Order Created Events**:
+
 ```json
 {
   "type": "order_created",
@@ -315,6 +421,7 @@ Real-time WebSocket connection for receiving live updates about orders, metrics,
 ```
 
 **2. Metrics Updates**:
+
 ```json
 {
   "type": "metrics_update",
@@ -335,6 +442,7 @@ Real-time WebSocket connection for receiving live updates about orders, metrics,
 ```
 
 **3. Health Status Updates**:
+
 ```json
 {
   "type": "health_update",
@@ -343,7 +451,7 @@ Real-time WebSocket connection for receiving live updates about orders, metrics,
     "response_time": 15
   },
   "order_service": {
-    "status": "healthy", 
+    "status": "healthy",
     "response_time": 25
   },
   "sap_mock": {
@@ -356,31 +464,31 @@ Real-time WebSocket connection for receiving live updates about orders, metrics,
 #### Client Connection Example (JavaScript)
 
 ```javascript
-const ws = new WebSocket('ws://localhost:8080/ws');
+const ws = new WebSocket("ws://localhost:8080/ws");
 
 ws.onopen = () => {
-  console.log('Connected to real-time updates');
+  console.log("Connected to real-time updates");
 };
 
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
-  console.log('Received:', data.type, data);
-  
-  switch(data.type) {
-    case 'order_created':
+  console.log("Received:", data.type, data);
+
+  switch (data.type) {
+    case "order_created":
       updateOrdersList(data.order);
       break;
-    case 'metrics_update':
+    case "metrics_update":
       updateMetrics(data);
       break;
-    case 'health_update':
+    case "health_update":
       updateHealthStatus(data);
       break;
   }
 };
 
 ws.onclose = () => {
-  console.log('WebSocket connection closed');
+  console.log("WebSocket connection closed");
 };
 ```
 
@@ -409,12 +517,14 @@ All errors follow a consistent format:
 ## Logging
 
 The proxy service logs all requests with the following information:
+
 - Request method and path
 - Order ID and customer ID
 - Processing duration
 - Response status
 
 Example log entry:
+
 ```json
 {
   "level": "info",
@@ -454,11 +564,12 @@ In Phase 3, the architecture has evolved to complete event-driven decoupling:
 **Topic**: `order.created`
 
 **Event Payload**:
+
 ```json
 {
   "order_id": "550e8400-e29b-41d4-a716-446655440000",
   "customer_id": "CUST-12345",
-  "total_amount": 259.90,
+  "total_amount": 259.9,
   "created_at": "2025-06-13T10:30:00Z",
   "event_time": "2025-06-13T10:30:02Z"
 }
@@ -469,6 +580,7 @@ In Phase 3, the architecture has evolved to complete event-driven decoupling:
 ### Using cURL
 
 Create an order:
+
 ```bash
 curl -X POST http://localhost:8080/orders \
   -H "Content-Type: application/json" \
@@ -485,51 +597,103 @@ curl -X POST http://localhost:8080/orders \
 ```
 
 Compare all orders:
+
 ```bash
 curl http://localhost:8080/compare/orders | jq .
 ```
 
 Compare specific order:
+
 ```bash
 curl http://localhost:8080/compare/orders/{order-id} | jq .
 ```
 
 List orders from Order Service:
+
 ```bash
 curl http://localhost:8081/orders | jq .
 ```
 
 List orders from SAP Mock:
+
 ```bash
 curl http://localhost:8082/orders | jq .
 ```
 
 Check health:
+
 ```bash
 curl http://localhost:8080/health
 curl http://localhost:8081/health
 curl http://localhost:8082/health
 ```
 
+Check circuit breaker metrics:
+
+```bash
+curl http://localhost:8080/metrics/circuit-breakers | jq .
+```
+
+Reset all circuit breakers:
+
+```bash
+curl -X POST http://localhost:8080/circuit-breakers/reset | jq .
+```
+
+Reset specific circuit breaker:
+
+```bash
+curl -X POST http://localhost:8080/circuit-breakers/reset/sap | jq .
+curl -X POST http://localhost:8080/circuit-breakers/reset/order-service | jq .
+```
+
+### Circuit Breaker Configuration
+
+Configure circuit breaker and HTTP timeout behavior with environment variables:
+
+```bash
+# SAP Circuit Breaker (Legacy System - Conservative settings)
+SAP_CB_MAX_FAILURES=3
+SAP_CB_TIMEOUT_SECONDS=10
+SAP_CB_MAX_REQUESTS=2
+SAP_HTTP_TIMEOUT_SECONDS=10
+
+# Order Service Circuit Breaker (Microservice - More tolerant)
+ORDER_SERVICE_CB_MAX_FAILURES=5
+ORDER_SERVICE_CB_TIMEOUT_SECONDS=15
+ORDER_SERVICE_CB_MAX_REQUESTS=3
+ORDER_SERVICE_HTTP_TIMEOUT_SECONDS=15
+```
+
 ### Using the Test Scripts
 
 **Basic functionality test:**
+
 ```bash
 ./scripts/test-order.sh
 ```
 
 **Data comparison and verification:**
+
 ```bash
 ./scripts/compare-data.sh
 ./scripts/demo-comparison.sh
 ```
 
 **Performance testing:**
+
 ```bash
 ./scripts/performance-benchmark.sh
 ```
 
+**Circuit breaker testing:**
+
+```bash
+./scripts/test-circuit-breaker.sh
+```
+
 **Load testing:**
+
 ```bash
 # Basic load test (50 orders, 10 concurrent)
 ./scripts/load-test.sh
@@ -544,6 +708,7 @@ curl http://localhost:8082/health
 ```
 
 **Available load test scenarios:**
+
 - `light`: 20 orders, 5 concurrent (development)
 - `medium`: 100 orders, 15 concurrent (integration)
 - `heavy`: 500 orders, 25 concurrent (performance)
